@@ -19,6 +19,7 @@ public class Mail {
 
     private Long recipientId;
 
+    @Column(nullable = false)
     private String senderEmail;
 
     private String recipientEmail;

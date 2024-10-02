@@ -60,7 +60,10 @@ public class MailService {
      */
     private Mail createMailFromRequest(MailRequest mailRequest) {
         Mail mail = new Mail();
-        mail.setSenderId(mailRequest.getSenderId());
+        // senderId가 없는 경우도 지원
+        if (mailRequest.getSenderId() != null) {
+            mail.setSenderId(mailRequest.getSenderId());
+        }
         mail.setRecipientId(mailRequest.getRecipientId());
         mail.setSenderEmail(mailRequest.getSenderEmail());
         mail.setRecipientEmail(mailRequest.getRecipientEmail());
@@ -106,6 +109,30 @@ public class MailService {
         }
     }
 
+    /**
+     * 받은 메일 단일 조회
+     * @param mailId 조회할 메일의 ID
+     * @return 조회된 메일 정보
+     */
+    public Mail getMailById(Long mailId) {
+        // 메일을 조회하고 존재하지 않으면 예외 처리
+        return mailRepository.findById(mailId)
+                .orElseThrow(() -> new RuntimeException("메일을 찾을 수 없습니다: " + mailId));
+    }
+
+    // 답장 메일 발송 기능을 추가
+    public Mail replyToMail(Long originalMailId, MailRequest mailRequest) throws MessagingException, IOException {
+        Mail originalMail = getMailById(originalMailId);
+
+        // 새로운 메일 요청 객체 생성
+        MailRequest replyMailRequest = new MailRequest();
+        replyMailRequest.setSenderEmail(mailRequest.getSenderEmail());
+        replyMailRequest.setRecipientEmail(mailRequest.getRecipientEmail());
+        replyMailRequest.setSubject("Re: " + originalMail.getSubject());  // 답장 메일 제목 설정
+        replyMailRequest.setBody("원본 메일:\n" + originalMail.getBody());
+
+        return sendEmail(replyMailRequest);
+    }
 //    /**
 //     * 파일을 업로드하고 경로를 반환하는 메서드
 //     * @param multipartFile 업로드할 파일

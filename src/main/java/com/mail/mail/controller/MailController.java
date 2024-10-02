@@ -31,10 +31,24 @@ public class MailController {
         try {
             Mail sentMail = mailService.sendEmail(mailRequest);
             log.info("메일 전송 성공: {}", mailRequest.getRecipientEmail());
-            return ResponseEntity.ok(sentMail);  // 성공적으로 전송된 메일 정보를 반환
+            return ResponseEntity.ok(sentMail);                             // 성공적으로 전송된 메일 정보를 반환
         } catch (MessagingException | IOException e) {
             log.error("메일 전송 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 전송 중 오류 발생: " + e.getMessage());
         }
+    }
+
+    // 메일 단일 조회 기능
+    @GetMapping("/{mailId}")
+    public ResponseEntity<Mail> getMailById(@PathVariable Long mailId) {
+        Mail mail = mailService.getMailById(mailId);
+        return ResponseEntity.ok(mail);
+    }
+
+    // 답장 메일 발송 기능
+    @PostMapping("/reply/{originalMailId}")
+    public ResponseEntity<Mail> replyToMail(@PathVariable Long originalMailId, @RequestBody MailRequest mailRequest) throws MessagingException, IOException {
+        Mail replyMail = mailService.replyToMail(originalMailId, mailRequest);
+        return ResponseEntity.ok(replyMail);
     }
 }

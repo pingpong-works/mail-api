@@ -1,10 +1,14 @@
 package com.mail.mail.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -15,11 +19,10 @@ public class Mail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long mailId;
 
-    private Long senderId;
+    private String senderName;
 
-    private Long recipientId;
+    private String recipientName;
 
-    @Column(nullable = false)
     private String senderEmail;
 
     private String recipientEmail;
@@ -30,15 +33,22 @@ public class Mail {
     @Column(nullable = false)
     private String body;
 
-    private String fileName;
+    private Long read_chk;
 
-    private String fileUrl;
+    private Long delete_chk;
+
+    @Transient
+    private Long isImportant;
+    @Transient
+    private Long employeeId;
+    //첨부파일
+    @Transient
+    private MultipartFile[] uploadFile;
 
     private Boolean isRead = false;
 
     private Boolean isDeleted = false;
 
-    @Column(nullable = false)
     private LocalDateTime sentAt = LocalDateTime.now();
 
 }

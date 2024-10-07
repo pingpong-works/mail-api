@@ -8,15 +8,15 @@ import java.util.Objects;
 
 @Setter
 @Getter
-public class ImportantMailId implements Serializable {
+public class MailImportantId implements Serializable {
     private Long employeeId;
     private Long mailId;
 
     // 기본 생성자
-    public ImportantMailId() {}
+    public MailImportantId() {}
 
     // 생성자
-    public ImportantMailId(Long employeeId, Long mailId) {
+    public MailImportantId(Long employeeId, Long mailId) {
         this.employeeId = employeeId;
         this.mailId = mailId;
     }
@@ -26,7 +26,7 @@ public class ImportantMailId implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ImportantMailId that = (ImportantMailId) o;
+        MailImportantId that = (MailImportantId) o;
         return Objects.equals(employeeId, that.employeeId) && Objects.equals(mailId, that.mailId);
     }
 

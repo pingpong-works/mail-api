@@ -23,6 +23,12 @@ public class MailController {
      */
     @PostMapping("/send")
     public ResponseEntity sendEmail(@RequestBody Mail mail) {
+        if (mail.getRecipientEmail() == null || mail.getRecipientEmail().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("수신자 이메일이 필요합니다.");
+        }
+        if (mail.getSubject() == null || mail.getSubject().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("메일 제목이 필요합니다.");
+        }
         try {
             int sentResult = mailService.sendEmail(mail);
             log.info("메일 전송 성공: {}", mail.getRecipientEmail());
@@ -32,4 +38,14 @@ public class MailController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 전송 중 오류 발생: " + e.getMessage());
         }
     }
+
+//    @GetMapping("/receive")
+//    public ResponseEntity<String> receiveEmails() {
+//        try {
+//            mailService.receiveEmails("your-email@pingpong-works.com", "your-email-password");
+//            return ResponseEntity.ok("이메일을 성공적으로 수신했습니다.");
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());
+//        }
+//    }
 }

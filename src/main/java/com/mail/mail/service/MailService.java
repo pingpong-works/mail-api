@@ -6,11 +6,7 @@ import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.mail.Message;
-import javax.mail.Multipart;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -46,8 +42,9 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
         props.put("mail.smtp.starttls.enable", "true"); //메일을 보낼때 props를 보냄 props에 담궈줌
         props.setProperty("mail.transport.protocol", "smtp");
         props.put("mail.debug", "false");
-        props.put("mail.smtp.host", "pingpong-works.com"); // mail도메인
+        props.put("mail.smtp.host", "mail.pingpong-works.com"); // mail도메인
         props.put("mail.smtp.port", "25"); // smtp포트
+//        props.put("mail.smtp.starttls.enable", "true"); // 587 포트 사용 시
         props.put("mail.smtp.connectiontimeout", "5000"); // timeout 시간 정해주는것
         props.put("mail.smtp.timeout", "5000");
         props.put("mail.smtp.auth", "true");
@@ -114,9 +111,14 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
             mail.setRead_chk(0L);
             mail.setDelete_chk(0L);
             mail.setSentAt(LocalDateTime.now());
+            // mailRepository.save(mail)을 호출하기 전에 로그로 mailId를 확인
+            log.info("mailId before save: " + mail.getMailId());
             mailRepository.save(mail);
-            Long i = 1L;
-            if(!mail.getUploadFile()[0].isEmpty()) {
+            log.info("mailId after save: " + mail.getMailId());
+
+            // 업로드 파일이 있는지 확인
+            if (mail.getUploadFile() != null && mail.getUploadFile().length > 0 && !mail.getUploadFile()[0].isEmpty()) {
+                Long i = 1L;
                 for(MultipartFile multipartFile : mail.getUploadFile()) {
                     MailAttach mailAttach = new MailAttach();
                     mailAttach.setMailAttachId(i);
@@ -126,10 +128,12 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
                     //mailRepository.saveAttach(mailAttach);
                     i++;
                 }
+                log.info("---------------------------------3");
             }
+
             result = 1;
         } catch (Exception e) {
-            System.out.println("error"+e.getMessage());
+            log.error("메일 전송 중 에러 발생: ", e);
         }finally {
 //			if(t!=null) {
 //				try {
@@ -140,9 +144,10 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
 //				}
 //			}
         }
-
+        log.info("---------------------------------메일 송신");
         return result;
     }
+
 
     private String uploadFile(String originalName, byte[] fileData, String uploadPath) throws IOException {
 
@@ -167,4 +172,6 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
         log.info("saveSuccess");
         return savedName;
     }
+
+
 }

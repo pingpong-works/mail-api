@@ -149,6 +149,72 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
     }
 
 
+    public void receiveEmails(String username, String password) throws MessagingException, IOException {
+        // 메일 속성 설정
+        Properties properties = new Properties();
+        properties.put("mail.store.protocol", "pop3");
+        properties.put("mail.pop3.host", "pingpong-works.com"); // 메일 서버 주소
+        properties.put("mail.pop3.port", "110"); // 보안 연결을 사용할 경우 995 포트를 사용
+        properties.put("mail.pop3.starttls.enable", "true");
+        properties.put("mail.pop3.ssl.trust", "*");
+
+        // 메일 세션 생성
+        Session emailSession = Session.getDefaultInstance(properties);
+
+        // POP3 스토어 객체 생성 후 서버에 연결
+        Store store = emailSession.getStore("pop3");
+        store.connect("mail.pingpong-works.com", username, password); // 여기에 이메일과 비밀번호 입력
+
+        // 폴더 객체 생성 및 읽기 전용으로 열기
+        Folder emailFolder = store.getFolder("INBOX");
+        emailFolder.open(Folder.READ_ONLY);
+
+        // 메시지 가져오기
+        Message[] messages = emailFolder.getMessages();
+        System.out.println("전체 메시지 수: " + messages.length);
+
+        for (int i = 0; i < messages.length; i++) {
+            Message message = messages[i];
+            System.out.println("---------------------------------");
+            System.out.println("이메일 번호 " + (i + 1));
+            System.out.println("제목: " + message.getSubject());
+            System.out.println("보낸 사람: " + message.getFrom()[0]);
+            System.out.println("본문: " + getTextFromMessage(message)); // 메시지에서 본문 추출
+        }
+
+        // 스토어와 폴더 객체 닫기
+        emailFolder.close(false);
+        store.close();
+    }
+
+    // 메시지 본문을 추출하는 헬퍼 메소드
+    private String getTextFromMessage(Message message) throws MessagingException, IOException {
+        String result = "";
+        if (message.isMimeType("text/plain")) {
+            result = message.getContent().toString();
+        } else if (message.isMimeType("multipart/*")) {
+            MimeMultipart mimeMultipart = (MimeMultipart) message.getContent();
+            result = getTextFromMimeMultipart(mimeMultipart);
+        }
+        return result;
+    }
+
+    // 멀티파트 콘텐츠 처리용 헬퍼 메소드
+    private String getTextFromMimeMultipart(MimeMultipart mimeMultipart) throws MessagingException, IOException {
+        StringBuilder result = new StringBuilder();
+        int count = mimeMultipart.getCount();
+        for (int i = 0; i < count; i++) {
+            BodyPart bodyPart = mimeMultipart.getBodyPart(i);
+            if (bodyPart.isMimeType("text/plain")) {
+                result.append(bodyPart.getContent());
+            } else if (bodyPart.getContent() instanceof MimeMultipart) {
+                result.append(getTextFromMimeMultipart((MimeMultipart) bodyPart.getContent()));
+            }
+        }
+        return result.toString();
+    }
+
+
     private String uploadFile(String originalName, byte[] fileData, String uploadPath) throws IOException {
 
         // universally unique identifier (UUID) 국제적으로 유일한 구별자

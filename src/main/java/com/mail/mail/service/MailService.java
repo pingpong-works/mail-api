@@ -1,10 +1,18 @@
 package com.mail.mail.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Properties;
-import java.util.UUID;
+import com.mail.client.auth.AuthServiceClient;
+import com.mail.client.auth.UserResponse;
+import com.mail.mail.entity.Mail;
+import com.mail.mail.entity.MailAttach;
+import com.mail.mail.entity.ReceivedMail;
+import com.mail.mail.repository.MailRepository;
+import com.mail.mail.repository.ReceivedMailRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.FileCopyUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
@@ -12,149 +20,130 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
-
-import com.mail.mail.entity.Mail;
-import com.mail.mail.entity.MailAttach;
-import com.mail.mail.repository.MailRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.FileCopyUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Properties;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
-public class MailService { // 메일서버와 송수신할수있는 서비스
+public class MailService {
 
     private final MailRepository mailRepository;
+    private final ReceivedMailRepository receivedMailRepository;
+    private final AuthServiceClient authServiceClient;
 
+    /**
+     * 이메일 전송 메소드
+     * @param mail 메일 정보가 담긴 객체
+     * @return 메일 전송 결과 (1: 성공, 0: 실패)
+     */
     public int sendEmail(Mail mail) {
-//        EmpForSearch emp = (EmpForSearch) session.getAttribute("empForSearch");
-        mail.setSenderEmail("admin@pingpong-works.com");
-        mail.setSenderName("관리자"); //누가 보냈는지
-        System.out.println("보내는 메일 주소->" + mail.getSenderEmail());
-        Properties props = new Properties();
-        props.put("mail.smtp.starttls.enable", "true"); //메일을 보낼때 props를 보냄 props에 담궈줌
-        props.setProperty("mail.transport.protocol", "smtp");
-        props.put("mail.debug", "false");
-        props.put("mail.smtp.host", "mail.pingpong-works.com"); // mail도메인
-        props.put("mail.smtp.port", "25"); // smtp포트
-//        props.put("mail.smtp.starttls.enable", "true"); // 587 포트 사용 시
-        props.put("mail.smtp.connectiontimeout", "5000"); // timeout 시간 정해주는것
-        props.put("mail.smtp.timeout", "5000");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.ssl.trust", "*"); // ssl 검증 비활성화
-//        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
-
-        String subject = mail.getSubject();
-        String body = mail.getBody();
-        String recipientEmail = mail.getRecipientEmail();
-        String recipientName = mail.getRecipientName();
-        Session mail_session = Session.getInstance(props, new javax.mail.Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(mail.getSenderEmail(), "1234qwer");
-            }
-        });
-
-        log.info("sendermail->" + mail.getSenderEmail());
-        MimeMessage msg = new MimeMessage(mail_session);
-        MimeBodyPart mimeBodyPart = new MimeBodyPart();
-        Multipart multipart = new MimeMultipart();
-        int result = 0;
-        Transport t = null;
+        // 수신자의 정보를 auth-api로부터 가져오기
         try {
-            msg.setFrom(new InternetAddress(mail.getSenderEmail(), mail.getSenderName()));
-            msg.setRecipient(Message.RecipientType.TO, new InternetAddress(recipientEmail, recipientName));
-            msg.setSubject(MimeUtility.encodeText(subject, "UTF-8", "B"));
-            //msg.setContent(mail_content, "text/html; charset=UTF-8");
-            log.info("---------------------------------1");
-            mimeBodyPart.setContent(body, "text/html; charset=UTF-8");
-            multipart.addBodyPart(mimeBodyPart);
-            log.info("---------------------------------2");
-            //t = msgSession.getTransport("smtp");
-            //log.info("Upload mail.getUploadFile().length : " + mail.getUploadFile().length);
-
-//            if(!mail.getUploadFile()[0].isEmpty()) { // 첨부파일이 있다면
-//                for(MultipartFile multipartFile : mail.getUploadFile()) {
-//                    log.info("---------------------------------");
-//                    log.info("Upload File Name : " + multipartFile.getOriginalFilename());
-//                    log.info("Upload File Size : " + multipartFile.getSize());
-//                    //File saveFile = new File(uploadFolder, multipartFile.getOriginalFilename());
-//
-//                    //multipartFile.transferTo(saveFile);
-//                    MimeBodyPart mimeAttachPart = new MimeBodyPart();
-//
-//                    //DataSource source = new FileDataSource(uploadFolder + "\\" + multipartFile.getOriginalFilename());
-//                    DataSource source = new ByteArrayDataSource(multipartFile.getBytes(), multipartFile.getContentType());
-//
-//                    mimeAttachPart.setDataHandler(new DataHandler(source));
-//                    try {
-//                        mimeAttachPart.setFileName(MimeUtility.encodeText(multipartFile.getOriginalFilename()));
-//                    } catch (Exception e) {
-//                        log.error(e.getMessage());
-//                    }
-//                    multipart.addBodyPart(mimeAttachPart);
-//                }
-//            }
-
-            msg.setContent(multipart);
-            log.info("senderMail->" + mail.getSenderEmail());
-            Transport.send(msg);
-//			t.connect();
-//			t.sendMessage(msg, msg.getAllRecipients());
-            String uploadFolder = System.getProperty("user.dir") + "/upload/";
-            mail.setRead_chk(0L);
-            mail.setDelete_chk(0L);
-            mail.setSentAt(LocalDateTime.now());
-            // mailRepository.save(mail)을 호출하기 전에 로그로 mailId를 확인
-            log.info("mailId before save: " + mail.getMailId());
-            mailRepository.save(mail);
-            log.info("mailId after save: " + mail.getMailId());
-
-            // 업로드 파일이 있는지 확인
-            if (mail.getUploadFile() != null && mail.getUploadFile().length > 0 && !mail.getUploadFile()[0].isEmpty()) {
-                Long i = 1L;
-                for(MultipartFile multipartFile : mail.getUploadFile()) {
-                    MailAttach mailAttach = new MailAttach();
-                    mailAttach.setMailAttachId(i);
-                    mailAttach.setMail(mail);
-                    mailAttach.setMailAttachSaveName(uploadFile(multipartFile.getOriginalFilename(),multipartFile.getBytes(),uploadFolder));
-                    mailAttach.setMailAttachSavePath(uploadFolder);
-                    //mailRepository.saveAttach(mailAttach);
-                    i++;
+            if (mail.getRecipientId() != null) {
+                UserResponse userResponse = authServiceClient.getEmployeeByIdForUser(mail.getRecipientId());
+                if (userResponse != null && userResponse.getData() != null) {
+                    mail.setRecipientName(userResponse.getData().getName());
+                    mail.setRecipientEmail(userResponse.getData().getEmail());
+                } else {
+                    log.error("수신자 정보를 가져올 수 없습니다. ID: {}", mail.getRecipientId());
+                    return 0; // 수신자 정보를 얻을 경우 메일 전송 중단
                 }
-                log.info("---------------------------------3");
             }
 
-            result = 1;
+            mail.setSenderEmail("admin@pingpong-works.com");
+            mail.setSenderName("관리자");
+
+            // 메일 서버 설정
+            Properties props = new Properties();
+            props.put("mail.smtp.starttls.enable", "true");
+            props.setProperty("mail.transport.protocol", "smtp");
+            props.put("mail.debug", "false");
+            props.put("mail.smtp.host", "mail.pingpong-works.com");
+            props.put("mail.smtp.port", "25");
+            props.put("mail.smtp.connectiontimeout", "5000");
+            props.put("mail.smtp.timeout", "5000");
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.ssl.trust", "*");
+
+            String subject = mail.getSubject();
+            String body = mail.getBody();
+            String recipientEmail = mail.getRecipientEmail();
+            String recipientName = mail.getRecipientName();
+
+            // 메일 세션 생성
+            Session mail_session = Session.getInstance(props, new javax.mail.Authenticator() {
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(mail.getSenderEmail(), "1234qwer");
+                }
+            });
+
+            log.info("sendermail->" + mail.getSenderEmail());
+            MimeMessage msg = new MimeMessage(mail_session);
+            MimeBodyPart mimeBodyPart = new MimeBodyPart();
+            Multipart multipart = new MimeMultipart();
+            int result = 0;
+
+            try {
+                // 메일 내용 설정
+                msg.setFrom(new InternetAddress(mail.getSenderEmail(), mail.getSenderName()));
+                msg.setRecipient(Message.RecipientType.TO, new InternetAddress(recipientEmail, recipientName));
+                msg.setSubject(MimeUtility.encodeText(subject, "UTF-8", "B"));
+                mimeBodyPart.setContent(body, "text/html; charset=UTF-8");
+                multipart.addBodyPart(mimeBodyPart);
+                msg.setContent(multipart);
+                Transport.send(msg);
+
+                // 메일 전송 후 메일 정보 저장
+                mail.setRead_chk(0L);
+                mail.setDelete_chk(0L);
+                mail.setSentAt(LocalDateTime.now());
+                log.info("mailId before save: " + mail.getMailId());
+                mailRepository.save(mail);
+                log.info("mailId after save: " + mail.getMailId());
+
+                // 첨부파일 처리
+                if (mail.getUploadFile() != null && mail.getUploadFile().length > 0 && !mail.getUploadFile()[0].isEmpty()) {
+                    Long i = 1L;
+                    for (MultipartFile multipartFile : mail.getUploadFile()) {
+                        MailAttach mailAttach = new MailAttach();
+                        mailAttach.setMailAttachId(i);
+                        mailAttach.setMail(mail);
+                        mailAttach.setMailAttachSaveName(uploadFile(multipartFile.getOriginalFilename(), multipartFile.getBytes(), System.getProperty("user.dir") + "/upload/"));
+                        mailAttach.setMailAttachSavePath(System.getProperty("user.dir") + "/upload/");
+                        i++;
+                    }
+                }
+
+                result = 1;
+            } catch (Exception e) {
+                log.error("메일 전송 중 에러 발생: ", e);
+            }
+
+            return result;
         } catch (Exception e) {
-            log.error("메일 전송 중 에러 발생: ", e);
-        }finally {
-//			if(t!=null) {
-//				try {
-//					t.close();
-//				} catch (MessagingException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
-//			}
+            log.error("sendEmail 메소드 중 에러 발생: ", e);
+            return 0;
         }
-        log.info("---------------------------------메일 송신");
-        return result;
     }
 
-
+    /**
+     * 이메일 수신 메소드 (POP3 프로토콜 사용)
+     * @param username 사용자 이메일 계정 이름
+     * @param password 사용자 이메일 계정 비밀번호
+     * @throws MessagingException 메일 수신 관련 예외
+     * @throws IOException 파일 처리 관련 예외
+     */
     public void receiveEmails(String username, String password) throws MessagingException, IOException {
         // 메일 속성 설정
         Properties properties = new Properties();
         properties.put("mail.store.protocol", "pop3");
-        properties.put("mail.pop3.host", "pingpong-works.com"); // 메일 서버 주소
-        properties.put("mail.pop3.port", "110"); // 보안 연결을 사용할 경우 995 포트를 사용
+        properties.put("mail.pop3.host", "pingpong-works.com");
+        properties.put("mail.pop3.port", "110");
         properties.put("mail.pop3.starttls.enable", "true");
         properties.put("mail.pop3.ssl.trust", "*");
 
@@ -163,7 +152,7 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
 
         // POP3 스토어 객체 생성 후 서버에 연결
         Store store = emailSession.getStore("pop3");
-        store.connect("mail.pingpong-works.com", username, password); // 여기에 이메일과 비밀번호 입력
+        store.connect("mail.pingpong-works.com", username, password);
 
         // 폴더 객체 생성 및 읽기 전용으로 열기
         Folder emailFolder = store.getFolder("INBOX");
@@ -179,7 +168,16 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
             System.out.println("이메일 번호 " + (i + 1));
             System.out.println("제목: " + message.getSubject());
             System.out.println("보낸 사람: " + message.getFrom()[0]);
-            System.out.println("본문: " + getTextFromMessage(message)); // 메시지에서 본문 추출
+            System.out.println("본문: " + getTextFromMessage(message));
+
+            // 받은 이메일을 데이터베이스에 저장
+            ReceivedMail receivedMail = new ReceivedMail();
+            receivedMail.setSubject(message.getSubject());
+            receivedMail.setSenderEmail(((InternetAddress) message.getFrom()[0]).getAddress());
+            receivedMail.setSenderName(((InternetAddress) message.getFrom()[0]).getPersonal());
+            receivedMail.setBody(getTextFromMessage(message));
+            receivedMail.setReceivedAt(LocalDateTime.now());
+            receivedMailRepository.save(receivedMail);
         }
 
         // 스토어와 폴더 객체 닫기
@@ -187,7 +185,13 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
         store.close();
     }
 
-    // 메시지 본문을 추출하는 헬퍼 메소드
+    /**
+     * 메시지 본문을 추출하는 메소드
+     * @param message 메시지 객체
+     * @return 메시지 본문 내용
+     * @throws MessagingException 메시지 처리 중 예외
+     * @throws IOException 파일 처리 중 예외
+     */
     private String getTextFromMessage(Message message) throws MessagingException, IOException {
         String result = "";
         if (message.isMimeType("text/plain")) {
@@ -199,7 +203,13 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
         return result;
     }
 
-    // 멀티파트 콘텐츠 처리용 헬퍼 메소드
+    /**
+     * 멀티파트 메시지 본문을 추출하는 메소드
+     * @param mimeMultipart 멀티파트 객체
+     * @return 멀티파트 본문 내용
+     * @throws MessagingException 메시지 처리 중 예외
+     * @throws IOException 파일 처리 중 예외
+     */
     private String getTextFromMimeMultipart(MimeMultipart mimeMultipart) throws MessagingException, IOException {
         StringBuilder result = new StringBuilder();
         int count = mimeMultipart.getCount();
@@ -214,30 +224,25 @@ public class MailService { // 메일서버와 송수신할수있는 서비스
         return result.toString();
     }
 
-
+    /**
+     * 파일을 업로드하는 메소드
+     * @param originalName 원본 파일 이름
+     * @param fileData 파일 데이터 바이트 배열
+     * @param uploadPath 업로드 경로
+     * @return 저장된 파일 이름
+     * @throws IOException 파일 처리 중 예외
+     */
     private String uploadFile(String originalName, byte[] fileData, String uploadPath) throws IOException {
-
-        // universally unique identifier (UUID) 국제적으로 유일한 구별자
         UUID uid = UUID.randomUUID();
-        // requestPath = requestPath + "/resources/image";
-        System.out.println("uploadPath->" + uploadPath);
-        //Directory 생성
         File fileDirectory = new File(uploadPath);
-        if(!fileDirectory.exists()) {
-            //신규 폴더(Directory) 생성
+        if (!fileDirectory.exists()) {
             fileDirectory.mkdirs();
-            System.out.println("업로드용 폴더 생성 : " + uploadPath);
         }
 
         String savedName = uid.toString() + "_" + originalName;
-        log.info("savedName : " + savedName);
         File target = new File(uploadPath, savedName);
-        //File target = new File(requestPath, savedName);
-        //File Upload ---> uploadPath / UUID+_+originalName
-        FileCopyUtils.copy(fileData, target); // org.springframework.util.FileCopyUtils
+        FileCopyUtils.copy(fileData, target);
         log.info("saveSuccess");
         return savedName;
     }
-
-
 }

@@ -27,6 +27,8 @@ public class Mail {
 
     private String recipientEmail;
 
+    private Long recipientId; // 수신자 ID 필드 추가
+
     @Column(nullable = false)
     private String subject;
 

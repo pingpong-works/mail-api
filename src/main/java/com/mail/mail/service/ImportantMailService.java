@@ -1,9 +1,9 @@
 package com.mail.mail.service;
 
-import com.mail.mail.dto.EmployeeDTO;
 import com.mail.mail.entity.MailImportant;
 import com.mail.mail.repository.ImportantMailRepository;
-import com.mail.mail.service.feign.EmployeeClient;
+import com.mail.client.auth.AuthServiceClient;
+import com.mail.client.auth.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,11 +12,14 @@ import org.springframework.stereotype.Service;
 public class ImportantMailService {
 
     private final ImportantMailRepository importantMailRepository;
-    private final EmployeeClient employeeClient;  // Employee 서비스와 통신할 Feign 클라이언트
+    private final AuthServiceClient authServiceClient;  // Auth 서비스와 통신할 Feign 클라이언트
 
     public MailImportant createImportantMail(Long employeeId, Long mailId) {
-        // Employee 서비스에서 사용자 정보 조회
-        EmployeeDTO employee = employeeClient.getEmployeeById(employeeId);
+        // Auth 서비스에서 사용자 정보 조회
+        UserResponse userResponse = authServiceClient.getEmployeeByIdForUser(employeeId);
+        if (userResponse == null || userResponse.getData() == null) {
+            throw new IllegalArgumentException("유효하지 않은 직원 ID입니다: " + employeeId);
+        }
 
         // ImportantMail 객체 생성 및 저장
         MailImportant mailImportant = new MailImportant();
@@ -26,4 +29,3 @@ public class ImportantMailService {
         return importantMailRepository.save(mailImportant);
     }
 }
-

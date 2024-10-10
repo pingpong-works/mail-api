@@ -41,15 +41,13 @@ public class Mail {
 
     @Transient
     private Long isImportant;
-    @Transient
-    private Long employeeId;
     //첨부파일
     @Transient
     private MultipartFile[] uploadFile;
 
     private Boolean isRead = false;
 
-    private Boolean isDeleted = false;
+    private Boolean isDeleted = false; // 삭제여부
 
     private LocalDateTime sentAt = LocalDateTime.now();
 

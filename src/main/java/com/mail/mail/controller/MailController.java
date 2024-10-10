@@ -39,13 +39,13 @@ public class MailController {
         }
     }
 
-//    @GetMapping("/receive")
-//    public ResponseEntity<String> receiveEmails() {
-//        try {
-//            mailService.receiveEmails("your-email@pingpong-works.com", "your-email-password");
-//            return ResponseEntity.ok("이메일을 성공적으로 수신했습니다.");
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());
-//        }
-//    }
+    @GetMapping("/receive")
+    public ResponseEntity<String> receiveEmails() {
+        try {
+            mailService.receiveEmails("admin@pingpong-works.com", "1234qwer");
+            return ResponseEntity.ok("이메일을 성공적으로 수신했습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());
+        }
+    }
 }

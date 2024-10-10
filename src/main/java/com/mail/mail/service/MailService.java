@@ -245,4 +245,32 @@ public class MailService {
         log.info("saveSuccess");
         return savedName;
     }
+
+    /**
+     * 메일 삭제 메소드 (소프트 삭제)
+     * @param mailId 삭제할 메일의 ID
+     * @param isReceivedMail 받은 메일 여부 (true: 받은 메일, false: 보낸 메일)
+     * @return 삭제 결과 (1: 성공, 0: 실패)
+     */
+    public int deleteMail(Long mailId, boolean isReceivedMail) {
+        try {
+            if (isReceivedMail) {
+                // 받은 메일 삭제
+                ReceivedMail receivedMail = receivedMailRepository.findById(mailId)
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 받은 메일 ID: " + mailId));
+                receivedMail.setIsDeleted(true);
+                receivedMailRepository.save(receivedMail);
+            } else {
+                // 보낸 메일 삭제
+                Mail mail = mailRepository.findById(mailId)
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 보낸 메일 ID: " + mailId));
+                mail.setIsDeleted(true);
+                mailRepository.save(mail);
+            }
+            return 1;
+        } catch (Exception e) {
+            log.error("deleteMail 메소드 중 에러 발생: ", e);
+            return 0;
+        }
+    }
 }

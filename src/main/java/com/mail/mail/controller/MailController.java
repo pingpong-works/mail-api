@@ -48,4 +48,20 @@ public class MailController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());
         }
     }
+
+    /**
+     * 메일 삭제 엔드포인트
+     * @param mailId 삭제할 메일의 ID
+     * @param isReceivedMail 받은 메일 여부 (true: 받은 메일, false: 보낸 메일)
+     * @return 삭제 결과 메시지
+     */
+    @DeleteMapping("/delete/{mailId}")
+    public ResponseEntity<String> deleteMail(@PathVariable Long mailId, @RequestParam boolean isReceivedMail) {
+        int result = mailService.deleteMail(mailId, isReceivedMail);
+        if (result == 1) {
+            return ResponseEntity.ok("메일이 성공적으로 삭제되었습니다.");
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 삭제 중 오류 발생");
+        }
+    }
 }

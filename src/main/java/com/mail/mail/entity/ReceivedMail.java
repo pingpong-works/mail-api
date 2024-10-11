@@ -31,6 +31,8 @@ public class ReceivedMail {
 
     private Boolean isRead = false;
 
+    private Boolean isDeleted = false; // 삭제 여부 필드 추가
+
     // 첨부파일이 있다면 여기에 추가할 수 있음
     // private List<String> attachments;
 }

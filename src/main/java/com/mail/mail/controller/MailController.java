@@ -8,8 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+@CrossOrigin(origins = "http://localhost:5173") // 실제 프론트엔드 도메인과 포트로 변경
 @RestController
-@RequestMapping("/api/mail")
+@RequestMapping("/mail")
 @RequiredArgsConstructor
 @Slf4j
 public class MailController {
@@ -39,6 +42,18 @@ public class MailController {
         }
     }
 
+    // 보낸 메일 조회
+    @GetMapping("/sent")
+    public ResponseEntity<List<Mail>> getSentMails() {
+        try {
+            List<Mail> sentMails = mailService.getSentMails();
+            return ResponseEntity.ok(sentMails);
+        } catch (Exception e) {
+            log.error("보낸 메일 조회 중 오류 발생: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
     @GetMapping("/receive")
     public ResponseEntity<String> receiveEmails() {
         try {
@@ -46,6 +61,22 @@ public class MailController {
             return ResponseEntity.ok("이메일을 성공적으로 수신했습니다.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 메일 삭제 엔드포인트
+     * @param mailId 삭제할 메일의 ID
+     * @param isReceivedMail 받은 메일 여부 (true: 받은 메일, false: 보낸 메일)
+     * @return 삭제 결과 메시지
+     */
+    @DeleteMapping("/delete/{mailId}")
+    public ResponseEntity<String> deleteMail(@PathVariable Long mailId, @RequestParam boolean isReceivedMail) {
+        int result = mailService.deleteMail(mailId, isReceivedMail);
+        if (result == 1) {
+            return ResponseEntity.ok("메일이 성공적으로 삭제되었습니다.");
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 삭제 중 오류 발생");
         }
     }
 }

@@ -1,9 +1,13 @@
 package com.mail.mail.controller;
 
+import com.mail.dto.MultiResponseDto;
 import com.mail.mail.entity.Mail;
 import com.mail.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,16 +46,15 @@ public class MailController {
         }
     }
 
-    // 보낸 메일 조회
+    // 보낸 메일 전체 조회
     @GetMapping("/sent")
-    public ResponseEntity<List<Mail>> getSentMails() {
-        try {
-            List<Mail> sentMails = mailService.getSentMails();
-            return ResponseEntity.ok(sentMails);
-        } catch (Exception e) {
-            log.error("보낸 메일 조회 중 오류 발생: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+    public ResponseEntity<MultiResponseDto<Mail>> getSentMails(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
+        Page<Mail> mailPage = mailService.getSentMails(pageable);
+        MultiResponseDto<Mail> response = new MultiResponseDto<>(mailPage.getContent(), mailPage);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/receive")

@@ -9,6 +9,8 @@ import com.mail.mail.repository.MailRepository;
 import com.mail.mail.repository.ReceivedMailRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.FileCopyUtils;
@@ -133,12 +135,13 @@ public class MailService {
     }
 
     /**
-     * 보낸 메일 조회 메소드
+     * 보낸 메일 전체 조회 메소드
      * @return 보낸 메일 목록
      */
-    public List<Mail> getSentMails() {
-        return mailRepository.findAll();
+    public Page<Mail> getSentMails(Pageable pageable) {
+        return mailRepository.findAllByOrderBySentAtDesc(pageable);
     }
+
 
     /**
      * 이메일 수신 메소드 (POP3 프로토콜 사용)

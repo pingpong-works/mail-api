@@ -23,6 +23,7 @@ import javax.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -129,6 +130,14 @@ public class MailService {
             log.error("sendEmail 메소드 중 에러 발생: ", e);
             return 0;
         }
+    }
+
+    /**
+     * 보낸 메일 조회 메소드
+     * @return 보낸 메일 목록
+     */
+    public List<Mail> getSentMails() {
+        return mailRepository.findAll();
     }
 
     /**

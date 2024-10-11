@@ -8,8 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+@CrossOrigin(origins = "http://localhost:5173") // 실제 프론트엔드 도메인과 포트로 변경
 @RestController
-@RequestMapping("/api/mail")
+@RequestMapping("/mail")
 @RequiredArgsConstructor
 @Slf4j
 public class MailController {
@@ -36,6 +39,18 @@ public class MailController {
         } catch (Exception e) {
             log.error("메일 전송 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 전송 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    // 보낸 메일 조회
+    @GetMapping("/sent")
+    public ResponseEntity<List<Mail>> getSentMails() {
+        try {
+            List<Mail> sentMails = mailService.getSentMails();
+            return ResponseEntity.ok(sentMails);
+        } catch (Exception e) {
+            log.error("보낸 메일 조회 중 오류 발생: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

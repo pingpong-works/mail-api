@@ -142,6 +142,11 @@ public class MailService {
         return mailRepository.findAllByOrderBySentAtDesc(pageable);
     }
 
+    public Mail getSentMailById(Long mailId) {
+        return mailRepository.findById(mailId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 메일을 찾을 수 없습니다. ID: " + mailId));
+    }
+
 
     /**
      * 이메일 수신 메소드 (POP3 프로토콜 사용)

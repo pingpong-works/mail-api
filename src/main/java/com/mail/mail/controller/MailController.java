@@ -1,6 +1,7 @@
 package com.mail.mail.controller;
 
 import com.mail.dto.MultiResponseDto;
+import com.mail.dto.SingleResponseDto;
 import com.mail.mail.entity.Mail;
 import com.mail.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,13 @@ public class MailController {
         Page<Mail> mailPage = mailService.getSentMails(pageable);
         MultiResponseDto<Mail> response = new MultiResponseDto<>(mailPage.getContent(), mailPage);
         return ResponseEntity.ok(response);
+    }
+
+    // 보낸 메일 상세 조회 엔드포인트
+    @GetMapping("/sent/{mailId}")
+    public ResponseEntity<SingleResponseDto<Mail>> getSentMailById(@PathVariable Long mailId) {
+        Mail mail = mailService.getSentMailById(mailId);
+        return ResponseEntity.ok(new SingleResponseDto<>(mail));
     }
 
     @GetMapping("/receive")

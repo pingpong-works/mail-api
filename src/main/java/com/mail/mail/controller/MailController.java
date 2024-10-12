@@ -81,7 +81,7 @@ public class MailController {
      * @param isReceivedMail 받은 메일 여부 (true: 받은 메일, false: 보낸 메일)
      * @return 삭제 결과 메시지
      */
-    @DeleteMapping("/delete/{mailId}")
+    @DeleteMapping("/{mailId}")
     public ResponseEntity<String> deleteMail(@PathVariable Long mailId, @RequestParam boolean isReceivedMail) {
         int result = mailService.deleteMail(mailId, isReceivedMail);
         if (result == 1) {

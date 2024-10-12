@@ -5,8 +5,10 @@ import com.mail.client.auth.UserResponse;
 import com.mail.mail.entity.Mail;
 import com.mail.mail.entity.MailAttach;
 import com.mail.mail.entity.ReceivedMail;
+import com.mail.mail.entity.TrashMail;
 import com.mail.mail.repository.MailRepository;
 import com.mail.mail.repository.ReceivedMailRepository;
+import com.mail.mail.repository.TrashMailRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,6 +39,7 @@ public class MailService {
 
     private final MailRepository mailRepository;
     private final ReceivedMailRepository receivedMailRepository;
+    private final TrashMailRepository trashMailRepository;
     private final AuthServiceClient authServiceClient;
 
     /**
@@ -288,11 +291,28 @@ public class MailService {
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 보낸 메일 ID: " + mailId));
                 mail.setIsDeleted(true);
                 mailRepository.save(mail);
+
+                // 휴지통에 메일 추가
+                TrashMail trashMail = new TrashMail();
+                trashMail.setOriginalMailId(mail.getMailId());
+                trashMail.setSenderName(mail.getSenderName());
+                trashMail.setRecipientName(mail.getRecipientName());
+                trashMail.setSenderEmail(mail.getSenderEmail());
+                trashMail.setRecipientEmail(mail.getRecipientEmail());
+                trashMail.setSubject(mail.getSubject());
+                trashMail.setBody(mail.getBody());
+                trashMail.setSentAt(mail.getSentAt());
+                trashMailRepository.save(trashMail);
             }
             return 1;
         } catch (Exception e) {
             log.error("deleteMail 메소드 중 에러 발생: ", e);
             return 0;
         }
+    }
+
+    // 휴지통에서 메일 조회 메소드
+    public List<TrashMail> getTrashMails() {
+        return trashMailRepository.findAll();
     }
 }

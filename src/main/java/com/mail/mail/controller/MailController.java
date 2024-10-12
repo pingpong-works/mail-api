@@ -3,6 +3,7 @@ package com.mail.mail.controller;
 import com.mail.dto.MultiResponseDto;
 import com.mail.dto.SingleResponseDto;
 import com.mail.mail.entity.Mail;
+import com.mail.mail.entity.TrashMail;
 import com.mail.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,5 +90,11 @@ public class MailController {
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 삭제 중 오류 발생");
         }
+    }
+
+    @GetMapping("/trash")
+    public ResponseEntity<List<TrashMail>> getTrashMails() {
+        List<TrashMail> trashMails = mailService.getTrashMails();
+        return ResponseEntity.ok(trashMails);
     }
 }

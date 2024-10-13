@@ -5,8 +5,10 @@ import com.mail.client.auth.UserResponse;
 import com.mail.mail.entity.Mail;
 import com.mail.mail.entity.MailAttach;
 import com.mail.mail.entity.ReceivedMail;
+import com.mail.mail.entity.TrashMail;
 import com.mail.mail.repository.MailRepository;
 import com.mail.mail.repository.ReceivedMailRepository;
+import com.mail.mail.repository.TrashMailRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,6 +39,7 @@ public class MailService {
 
     private final MailRepository mailRepository;
     private final ReceivedMailRepository receivedMailRepository;
+    private final TrashMailRepository trashMailRepository;
     private final AuthServiceClient authServiceClient;
 
     /**
@@ -140,6 +143,35 @@ public class MailService {
      */
     public Page<Mail> getSentMails(Pageable pageable) {
         return mailRepository.findAllByOrderBySentAtDesc(pageable);
+    }
+
+    /**
+     * 특정 메일 상세 조회 메소드
+     * @param mailId 메일 ID
+     * @return 메일 상세 정보
+     */
+    public Mail getSentMailById(Long mailId) {
+        return mailRepository.findById(mailId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 메일을 찾을 수 없습니다. ID: " + mailId));
+    }
+
+    /**
+     * 휴지통 메일 전체 조회 메소드 (페이징네이션 적용)
+     * @param pageable 페이징 설정 정보
+     * @return 페이징된 휴지통 메일 목록
+     */
+    public Page<TrashMail> getTrashMails(Pageable pageable) {
+        return trashMailRepository.findAllByOrderByDeletedAtDesc(pageable);
+    }
+
+    /**
+     * 특정 휴지통 메일 상세 조회 메소드
+     * @param trashMailId 휴지통 메일 ID
+     * @return 휴지통 메일 상세 정보
+     */
+    public TrashMail getTrashMailById(Long trashMailId) {
+        return trashMailRepository.findById(trashMailId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 휴지통 메일을 찾을 수 없습니다. ID: " + trashMailId));
     }
 
 
@@ -259,7 +291,7 @@ public class MailService {
     }
 
     /**
-     * 메일 삭제 메소드 (소프트 삭제)
+     * 메일 삭제 메소드 (휴지통으로 이동)
      * @param mailId 삭제할 메일의 ID
      * @param isReceivedMail 받은 메일 여부 (true: 받은 메일, false: 보낸 메일)
      * @return 삭제 결과 (1: 성공, 0: 실패)
@@ -267,17 +299,38 @@ public class MailService {
     public int deleteMail(Long mailId, boolean isReceivedMail) {
         try {
             if (isReceivedMail) {
-                // 받은 메일 삭제
+                // 받은 메일 삭제 (휴지통으로 이동)
                 ReceivedMail receivedMail = receivedMailRepository.findById(mailId)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 받은 메일 ID: " + mailId));
-                receivedMail.setIsDeleted(true);
-                receivedMailRepository.save(receivedMail);
+
+                TrashMail trashMail = new TrashMail();
+                trashMail.setMailId(receivedMail.getMailId());
+                trashMail.setSenderName(receivedMail.getSenderName());
+                trashMail.setSenderEmail(receivedMail.getSenderEmail());
+                trashMail.setRecipientEmail(receivedMail.getRecipientEmail());
+                trashMail.setSubject(receivedMail.getSubject());
+                trashMail.setBody(receivedMail.getBody());
+                trashMail.setSentAt(receivedMail.getReceivedAt());
+                trashMailRepository.save(trashMail);
+
+                receivedMailRepository.delete(receivedMail);
             } else {
-                // 보낸 메일 삭제
+                // 보낸 메일 삭제 (휴지통으로 이동)
                 Mail mail = mailRepository.findById(mailId)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 보낸 메일 ID: " + mailId));
-                mail.setIsDeleted(true);
-                mailRepository.save(mail);
+
+                TrashMail trashMail = new TrashMail();
+                trashMail.setMailId(mail.getMailId());
+                trashMail.setSenderName(mail.getSenderName());
+                trashMail.setRecipientName(mail.getRecipientName());
+                trashMail.setSenderEmail(mail.getSenderEmail());
+                trashMail.setRecipientEmail(mail.getRecipientEmail());
+                trashMail.setSubject(mail.getSubject());
+                trashMail.setBody(mail.getBody());
+                trashMail.setSentAt(mail.getSentAt());
+                trashMailRepository.save(trashMail);
+
+                mailRepository.delete(mail);
             }
             return 1;
         } catch (Exception e) {
@@ -285,4 +338,57 @@ public class MailService {
             return 0;
         }
     }
+
+    /**
+     * 휴지통에서 메일 복원 메소드
+     * @param trashMailId 복원할 휴지통 메일의 ID
+     * @return 복원 결과 (1: 성공, 0: 실패)
+     */
+    public int restoreMail(Long trashMailId) {
+        try {
+            TrashMail trashMail = trashMailRepository.findById(trashMailId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 휴지통 메일 ID: " + trashMailId));
+
+            // 원본 메일 복원
+            Mail restoredMail = new Mail();
+            restoredMail.setSenderName(trashMail.getSenderName());
+            restoredMail.setRecipientName(trashMail.getRecipientName());
+            restoredMail.setSenderEmail(trashMail.getSenderEmail());
+            restoredMail.setRecipientEmail(trashMail.getRecipientEmail());
+            restoredMail.setSubject(trashMail.getSubject());
+            restoredMail.setBody(trashMail.getBody());
+            restoredMail.setSentAt(trashMail.getSentAt());
+            restoredMail.setIsDeleted(false);
+            mailRepository.save(restoredMail);
+
+            // 휴지통에서 메일 삭제
+            trashMailRepository.delete(trashMail);
+
+            return 1;
+        } catch (Exception e) {
+            log.error("restoreMail 메소드 중 에러 발생: ", e);
+            return 0;
+        }
+    }
+
+    /**
+     * 휴지통에서 메일 완전 삭제 메소드
+     * @param trashMailId 완전 삭제할 휴지통 메일의 ID
+     * @return 삭제 결과 (1: 성공, 0: 실패)
+     */
+    public int deletePermanently(Long trashMailId) {
+        try {
+            TrashMail trashMail = trashMailRepository.findById(trashMailId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 휴지통 메일 ID: " + trashMailId));
+
+            // 휴지통에서 메일 완전 삭제
+            trashMailRepository.delete(trashMail);
+            return 1;
+        } catch (Exception e) {
+            log.error("deletePermanently 메소드 중 에러 발생: ", e);
+            return 0;
+        }
+    }
+
+
 }

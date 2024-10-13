@@ -14,7 +14,7 @@ public class ReceivedMail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long mailId;
 
     private String senderEmail;
 

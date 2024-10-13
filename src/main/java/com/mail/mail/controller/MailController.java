@@ -66,6 +66,25 @@ public class MailController {
         return ResponseEntity.ok(new SingleResponseDto<>(mail));
     }
 
+    // 휴지통 메일 전체 조회
+    @GetMapping("/trash")
+    public ResponseEntity<MultiResponseDto<TrashMail>> getTrashMails(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
+        Page<TrashMail> trashMailPage = mailService.getTrashMails(pageable);
+        MultiResponseDto<TrashMail> response = new MultiResponseDto<>(trashMailPage.getContent(), trashMailPage);
+        return ResponseEntity.ok(response);
+    }
+
+    // 휴지통 메일 상세 조회 엔드포인트
+    @GetMapping("/trash/{trashMailId}")
+    public ResponseEntity<SingleResponseDto<TrashMail>> getTrashMailById(@PathVariable Long trashMailId) {
+        TrashMail trashMail = mailService.getTrashMailById(trashMailId);
+        return ResponseEntity.ok(new SingleResponseDto<>(trashMail));
+    }
+
+
     @GetMapping("/receive")
     public ResponseEntity<String> receiveEmails() {
         try {
@@ -92,9 +111,25 @@ public class MailController {
         }
     }
 
-    @GetMapping("/trash")
-    public ResponseEntity<List<TrashMail>> getTrashMails() {
-        List<TrashMail> trashMails = mailService.getTrashMails();
-        return ResponseEntity.ok(trashMails);
+    // 휴지통 메일 복원
+    @PutMapping("/trash/restore/{trashMailId}")
+    public ResponseEntity<String> restoreMail(@PathVariable Long trashMailId) {
+        int result = mailService.restoreMail(trashMailId);
+        if (result == 1) {
+            return ResponseEntity.ok("메일이 복원되었습니다.");
+        } else {
+            return ResponseEntity.status(500).body("메일 복원 중 오류가 발생했습니다.");
+        }
+    }
+
+    // 휴지통 메일 완전 삭제
+    @DeleteMapping("/trash/{trashMailId}")
+    public ResponseEntity<String> deletePermanently(@PathVariable Long trashMailId) {
+        int result = mailService.deletePermanently(trashMailId);
+        if (result == 1) {
+            return ResponseEntity.ok("메일이 영구 삭제되었습니다.");
+        } else {
+            return ResponseEntity.status(500).body("메일 영구 삭제 중 오류가 발생했습니다.");
+        }
     }
 }

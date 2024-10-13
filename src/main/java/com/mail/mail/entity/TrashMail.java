@@ -15,7 +15,7 @@ public class TrashMail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long trashMailId;
 
-    private Long originalMailId;
+    private Long mailId;
 
     private String senderName;
 

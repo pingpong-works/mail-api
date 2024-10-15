@@ -69,7 +69,7 @@ public class MailService {
             props.put("mail.smtp.starttls.enable", "true");
             props.setProperty("mail.transport.protocol", "smtp");
             props.put("mail.debug", "false");
-            props.put("mail.smtp.host", "mail.pingpong-works.com");
+            props.put("mail.smtp.host", "mail2.pingpong-works.com");
             props.put("mail.smtp.port", "25");
             props.put("mail.smtp.connectiontimeout", "5000");
             props.put("mail.smtp.timeout", "5000");
@@ -91,6 +91,7 @@ public class MailService {
             log.info("sendermail->" + mail.getSenderEmail());
             MimeMessage msg = new MimeMessage(mail_session);
             MimeBodyPart mimeBodyPart = new MimeBodyPart();
+            mimeBodyPart.setContent(mail.getBody(), "text/html; charset=UTF-8");
             Multipart multipart = new MimeMultipart();
             int result = 0;
 
@@ -186,7 +187,7 @@ public class MailService {
         // 메일 속성 설정
         Properties properties = new Properties();
         properties.put("mail.store.protocol", "pop3");
-        properties.put("mail.pop3.host", "pingpong-works.com");
+        properties.put("mail.pop3.host", "mail2.pingpong-works.com");
         properties.put("mail.pop3.port", "110");
         properties.put("mail.pop3.starttls.enable", "true");
         properties.put("mail.pop3.ssl.trust", "*");
@@ -196,7 +197,7 @@ public class MailService {
 
         // POP3 스토어 객체 생성 후 서버에 연결
         Store store = emailSession.getStore("pop3");
-        store.connect("mail.pingpong-works.com", username, password);
+        store.connect("mail2.pingpong-works.com", username, password);
 
         // 폴더 객체 생성 및 읽기 전용으로 열기
         Folder emailFolder = store.getFolder("INBOX");
@@ -208,6 +209,12 @@ public class MailService {
 
         for (int i = 0; i < messages.length; i++) {
             Message message = messages[i];
+
+            // 메일러 데몬으로부터 온 반송 메일을 무시
+            if (message.getFrom()[0].toString().contains("mailer-daemon")) {
+                continue; // 반송 메일은 건너뜀
+            }
+
             System.out.println("---------------------------------");
             System.out.println("이메일 번호 " + (i + 1));
             System.out.println("제목: " + message.getSubject());
@@ -219,6 +226,7 @@ public class MailService {
             receivedMail.setSubject(message.getSubject());
             receivedMail.setSenderEmail(((InternetAddress) message.getFrom()[0]).getAddress());
             receivedMail.setSenderName(((InternetAddress) message.getFrom()[0]).getPersonal());
+            receivedMail.setRecipientEmail(username); // 수신자 이메일 저장
             receivedMail.setBody(getTextFromMessage(message));
             receivedMail.setReceivedAt(LocalDateTime.now());
             receivedMailRepository.save(receivedMail);
@@ -227,6 +235,25 @@ public class MailService {
         // 스토어와 폴더 객체 닫기
         emailFolder.close(false);
         store.close();
+    }
+
+    /**
+     * 받은 메일 전체 조회 메소드
+     * @param pageable 페이징 설정 정보
+     * @return 페이징된 받은 메일 목록
+     */
+    public Page<ReceivedMail> getReceivedMails(Pageable pageable) {
+        return receivedMailRepository.findAllByOrderByReceivedAtDesc(pageable);
+    }
+
+    /**
+     * 특정 수신 메일 상세 조회 메소드
+     * @param receivedMailId 수신 메일 ID
+     * @return 수신 메일 상세 정보
+     */
+    public ReceivedMail getReceivedMailById(Long receivedMailId) {
+        return receivedMailRepository.findById(receivedMailId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 수신 메일을 찾을 수 없습니다. ID: " + receivedMailId));
     }
 
     /**
@@ -239,6 +266,8 @@ public class MailService {
     private String getTextFromMessage(Message message) throws MessagingException, IOException {
         String result = "";
         if (message.isMimeType("text/plain")) {
+            result = message.getContent().toString();
+        } else if (message.isMimeType("text/html")) {
             result = message.getContent().toString();
         } else if (message.isMimeType("multipart/*")) {
             MimeMultipart mimeMultipart = (MimeMultipart) message.getContent();
@@ -260,6 +289,8 @@ public class MailService {
         for (int i = 0; i < count; i++) {
             BodyPart bodyPart = mimeMultipart.getBodyPart(i);
             if (bodyPart.isMimeType("text/plain")) {
+                result.append(bodyPart.getContent());
+            } else if (bodyPart.isMimeType("text/html")) {
                 result.append(bodyPart.getContent());
             } else if (bodyPart.getContent() instanceof MimeMultipart) {
                 result.append(getTextFromMimeMultipart((MimeMultipart) bodyPart.getContent()));

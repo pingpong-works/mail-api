@@ -3,6 +3,7 @@ package com.mail.mail.controller;
 import com.mail.dto.MultiResponseDto;
 import com.mail.dto.SingleResponseDto;
 import com.mail.mail.entity.Mail;
+import com.mail.mail.entity.ReceivedMail;
 import com.mail.mail.entity.TrashMail;
 import com.mail.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
@@ -84,7 +85,8 @@ public class MailController {
         return ResponseEntity.ok(new SingleResponseDto<>(trashMail));
     }
 
-
+    //pop3서버에서 메일을 가져오는 메서드
+    //엔드포인트를 호출하여 수신 메일을 pop3서버에서 가져오고 이를 db에 저장
     @GetMapping("/receive")
     public ResponseEntity<String> receiveEmails() {
         try {
@@ -94,6 +96,25 @@ public class MailController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());
         }
     }
+
+    // 수신 메일 전체 조회
+    @GetMapping("/received")
+    public ResponseEntity<MultiResponseDto<ReceivedMail>> getReceivedMails(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
+        Page<ReceivedMail> receivedMailPage = mailService.getReceivedMails(pageable);
+        MultiResponseDto<ReceivedMail> response = new MultiResponseDto<>(receivedMailPage.getContent(), receivedMailPage);
+        return ResponseEntity.ok(response);
+    }
+
+    // 수신 메일 상세 조회 엔드포인트
+    @GetMapping("/received/{receivedMailId}")
+    public ResponseEntity<SingleResponseDto<ReceivedMail>> getReceivedMailById(@PathVariable Long receivedMailId) {
+        ReceivedMail receivedMail = mailService.getReceivedMailById(receivedMailId);
+        return ResponseEntity.ok(new SingleResponseDto<>(receivedMail));
+    }
+
 
     /**
      * 메일 삭제 엔드포인트

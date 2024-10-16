@@ -49,12 +49,18 @@ public class MailService {
      * @param mail 메일 정보가 담긴 객체
      * @return 메일 전송 결과 (1: 성공, 0: 실패)
      */
-    public int sendEmail(Mail mail) {
+    public int sendEmail(Mail mail, Long employeeId) {
         // 수신자의 정보를 auth-api로부터 가져오기
         try {
+            // 로그인된 사용자의 정보를 auth-api를 통해 가져오기 (여기서 employeeId로 조회)
+            UserResponse userResponse = authServiceClient.getEmployeeByIdForUser(employeeId);
+            if (userResponse == null || userResponse.getData() == null) {
+                log.error("발신자 정보를 가져올 수 없습니다. ID: {}", employeeId);
+                return 0; // 발신자 정보를 얻지 못할 경우 메일 전송 중단
+            }
 
-            mail.setSenderEmail("admin@pingpong-works.com");
-            mail.setSenderName("관리자");
+            mail.setSenderEmail(userResponse.getData().getEmail());  // 로그인된 사용자의 이메일 설정
+            mail.setSenderName(userResponse.getData().getName());    // 로그인된 사용자의 이름 설정
 
             // 메일 서버 설정
             Properties props = new Properties();
@@ -153,6 +159,7 @@ public class MailService {
                 result = 1;
             } catch (Exception e) {
                 log.error("메일 전송 중 에러 발생: ", e);
+                return -1;
             }
 
             return result;

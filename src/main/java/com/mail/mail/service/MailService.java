@@ -6,6 +6,7 @@ import com.mail.mail.entity.Mail;
 import com.mail.mail.entity.MailAttach;
 import com.mail.mail.entity.ReceivedMail;
 import com.mail.mail.entity.TrashMail;
+import com.mail.mail.repository.MailAttachRepository;
 import com.mail.mail.repository.MailRepository;
 import com.mail.mail.repository.ReceivedMailRepository;
 import com.mail.mail.repository.TrashMailRepository;
@@ -38,6 +39,7 @@ import java.util.UUID;
 public class MailService {
 
     private final MailRepository mailRepository;
+    private final MailAttachRepository mailAttachRepository;
     private final ReceivedMailRepository receivedMailRepository;
     private final TrashMailRepository trashMailRepository;
     private final AuthServiceClient authServiceClient;
@@ -50,16 +52,6 @@ public class MailService {
     public int sendEmail(Mail mail) {
         // 수신자의 정보를 auth-api로부터 가져오기
         try {
-            if (mail.getRecipientId() != null) {
-                UserResponse userResponse = authServiceClient.getEmployeeByIdForUser(mail.getRecipientId());
-                if (userResponse != null && userResponse.getData() != null) {
-                    mail.setRecipientName(userResponse.getData().getName());
-                    mail.setRecipientEmail(userResponse.getData().getEmail());
-                } else {
-                    log.error("수신자 정보를 가져올 수 없습니다. ID: {}", mail.getRecipientId());
-                    return 0; // 수신자 정보를 얻을 경우 메일 전송 중단
-                }
-            }
 
             mail.setSenderEmail("admin@pingpong-works.com");
             mail.setSenderName("관리자");
@@ -113,16 +105,48 @@ public class MailService {
                 mailRepository.save(mail);
                 log.info("mailId after save: " + mail.getMailId());
 
-                // 첨부파일 처리
+//                // 첨부파일 처리
+//                if (mail.getUploadFile() != null && mail.getUploadFile().length > 0 && !mail.getUploadFile()[0].isEmpty()) {
+//                    Long i = 1L;
+//                    for (MultipartFile multipartFile : mail.getUploadFile()) {
+//                        MailAttach mailAttach = new MailAttach();
+//                        mailAttach.setMailAttachId(i);
+//                        mailAttach.setMail(mail);
+//                        mailAttach.setMailAttachSaveName(uploadFile(multipartFile.getOriginalFilename(), multipartFile.getBytes(), System.getProperty("user.dir") + "/upload/"));
+//                        mailAttach.setMailAttachSavePath(System.getProperty("user.dir") + "/upload/");
+//                        i++;
+//                    }
+//                }
+
+                // 첨부파일 처리 개선
                 if (mail.getUploadFile() != null && mail.getUploadFile().length > 0 && !mail.getUploadFile()[0].isEmpty()) {
                     Long i = 1L;
                     for (MultipartFile multipartFile : mail.getUploadFile()) {
-                        MailAttach mailAttach = new MailAttach();
-                        mailAttach.setMailAttachId(i);
-                        mailAttach.setMail(mail);
-                        mailAttach.setMailAttachSaveName(uploadFile(multipartFile.getOriginalFilename(), multipartFile.getBytes(), System.getProperty("user.dir") + "/upload/"));
-                        mailAttach.setMailAttachSavePath(System.getProperty("user.dir") + "/upload/");
-                        i++;
+                        try {
+                            // 업로드 경로 생성 여부 확인 및 경로 생성
+                            String uploadPath = System.getProperty("user.dir") + "/upload/";
+                            File uploadDir = new File(uploadPath);
+                            if (!uploadDir.exists()) {
+                                uploadDir.mkdirs(); // 디렉토리 생성
+                            }
+
+                            // 파일 저장 처리
+                            String savedFileName = uploadFile(multipartFile.getOriginalFilename(), multipartFile.getBytes(), uploadPath);
+
+                            // 첨부파일 엔티티 생성 및 저장
+                            MailAttach mailAttach = new MailAttach();
+                            mailAttach.setMailAttachId(i);
+                            mailAttach.setMail(mail);
+                            mailAttach.setMailAttachSaveName(savedFileName);
+                            mailAttach.setMailAttachSavePath(uploadPath);
+
+                            // 첨부파일 정보를 DB에 저장
+                            mailAttachRepository.save(mailAttach);
+
+                            i++;
+                        } catch (IOException e) {
+                            log.error("첨부파일 저장 중 오류 발생: ", e);
+                        }
                     }
                 }
 
@@ -171,6 +195,7 @@ public class MailService {
      * @return 휴지통 메일 상세 정보
      */
     public TrashMail getTrashMailById(Long trashMailId) {
+        log.info("휴지통 메일 ID: {}", trashMailId);  // 추가된 로깅
         return trashMailRepository.findById(trashMailId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 휴지통 메일을 찾을 수 없습니다. ID: " + trashMailId));
     }
@@ -311,14 +336,14 @@ public class MailService {
         UUID uid = UUID.randomUUID();
         File fileDirectory = new File(uploadPath);
         if (!fileDirectory.exists()) {
-            fileDirectory.mkdirs();
+            fileDirectory.mkdirs(); // 디렉토리 없으면 생성
         }
 
-        String savedName = uid.toString() + "_" + originalName;
-        File target = new File(uploadPath, savedName);
-        FileCopyUtils.copy(fileData, target);
-        log.info("saveSuccess");
-        return savedName;
+        String savedName = uid.toString() + "_" + originalName; //파일 이름 UUID로 생성
+        File target = new File(uploadPath, savedName); // 저장할 파일 경로 설정
+        FileCopyUtils.copy(fileData, target); // 파일 데이터 저장
+        log.info("saveSuccess: " + savedName); // 파일 저장 성공 로그
+        return savedName; // 저장된 파일 이름 반환
     }
 
     /**

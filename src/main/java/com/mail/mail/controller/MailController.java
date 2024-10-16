@@ -15,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:5173") // 실제 프론트엔드 도메인과 포트로 변경
 @RestController
@@ -67,24 +66,6 @@ public class MailController {
         return ResponseEntity.ok(new SingleResponseDto<>(mail));
     }
 
-    // 휴지통 메일 전체 조회
-    @GetMapping("/trash")
-    public ResponseEntity<MultiResponseDto<TrashMail>> getTrashMails(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
-        Page<TrashMail> trashMailPage = mailService.getTrashMails(pageable);
-        MultiResponseDto<TrashMail> response = new MultiResponseDto<>(trashMailPage.getContent(), trashMailPage);
-        return ResponseEntity.ok(response);
-    }
-
-    // 휴지통 메일 상세 조회 엔드포인트
-    @GetMapping("/trash/{trashMailId}")
-    public ResponseEntity<SingleResponseDto<TrashMail>> getTrashMailById(@PathVariable Long trashMailId) {
-        TrashMail trashMail = mailService.getTrashMailById(trashMailId);
-        return ResponseEntity.ok(new SingleResponseDto<>(trashMail));
-    }
-
     //pop3서버에서 메일을 가져오는 메서드
     //엔드포인트를 호출하여 수신 메일을 pop3서버에서 가져오고 이를 db에 저장
     @GetMapping("/receive")
@@ -132,10 +113,38 @@ public class MailController {
         }
     }
 
+    // 휴지통 메일 전체 조회
+    @GetMapping("/trash")
+    public ResponseEntity<MultiResponseDto<TrashMail>> getTrashMails(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
+        Page<TrashMail> trashMailPage = mailService.getTrashMails(pageable);
+        MultiResponseDto<TrashMail> response = new MultiResponseDto<>(trashMailPage.getContent(), trashMailPage);
+        return ResponseEntity.ok(response);
+    }
+
+    // 휴지통 메일 상세 조회 엔드포인트
+    @GetMapping("/trash/{mailId}")
+    public ResponseEntity<SingleResponseDto<TrashMail>> getTrashMailById(@PathVariable Long mailId) {
+        log.info("휴지통 메일 ID: {}", mailId);
+        if (mailId == null) {
+            log.error("mailId가 null로 전달되었습니다.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+        try {
+            TrashMail trashMail = mailService.getTrashMailById(mailId);
+            return ResponseEntity.ok(new SingleResponseDto<>(trashMail));
+        } catch (Exception e) {
+            log.error("휴지통 메일 조회 중 오류 발생: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
     // 휴지통 메일 복원
-    @PutMapping("/trash/restore/{trashMailId}")
-    public ResponseEntity<String> restoreMail(@PathVariable Long trashMailId) {
-        int result = mailService.restoreMail(trashMailId);
+    @PutMapping("/trash/restore/{mailId}")
+    public ResponseEntity<String> restoreMail(@PathVariable Long mailId) {
+        int result = mailService.restoreMail(mailId);
         if (result == 1) {
             return ResponseEntity.ok("메일이 복원되었습니다.");
         } else {
@@ -144,9 +153,9 @@ public class MailController {
     }
 
     // 휴지통 메일 완전 삭제
-    @DeleteMapping("/trash/{trashMailId}")
-    public ResponseEntity<String> deletePermanently(@PathVariable Long trashMailId) {
-        int result = mailService.deletePermanently(trashMailId);
+    @DeleteMapping("/trash/{mailId}")
+    public ResponseEntity<String> deletePermanently(@PathVariable Long mailId) {
+        int result = mailService.deletePermanently(mailId);
         if (result == 1) {
             return ResponseEntity.ok("메일이 영구 삭제되었습니다.");
         } else {

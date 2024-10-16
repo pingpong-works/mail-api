@@ -27,8 +27,6 @@ public class Mail {
 
     private String recipientEmail;
 
-    private Long recipientId; // 수신자 ID 필드 추가
-
     @Column(nullable = false)
     private String subject;
 
@@ -50,6 +48,17 @@ public class Mail {
     private Boolean isDeleted = false; // 삭제여부
 
     private LocalDateTime sentAt = LocalDateTime.now();
+
+//    // 메일과 첨부파일의 일대다 관계 설정
+//    @OneToMany(mappedBy = "mail", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<MailAttach> attachments = new ArrayList<>();  // 첨부파일 리스트
+//
+//    public void addAttachement(MailAttach mailAttach){
+//        attachments.add(mailAttach);
+//        if (mailAttach.getMail() != this){
+//            mailAttach.setMail(this);
+//        }
+//    }
 
 }
 

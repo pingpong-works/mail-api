@@ -31,7 +31,7 @@ public class MailController {
      * @return 전송된 메일 정보 또는 에러 메시지
      */
     @PostMapping("/send")
-    public ResponseEntity sendEmail(@RequestBody Mail mail) {
+    public ResponseEntity sendEmail(@RequestBody Mail mail , @RequestParam Long employeeId) {
         if (mail.getRecipientEmail() == null || mail.getRecipientEmail().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("수신자 이메일이 필요합니다.");
         }
@@ -39,12 +39,15 @@ public class MailController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("메일 제목이 필요합니다.");
         }
         try {
-            int sentResult = mailService.sendEmail(mail);
+            int sentResult = mailService.sendEmail(mail, employeeId);
+            if (sentResult == 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("발신자 정보를 가져올 수 없습니다.");
+            }
             log.info("메일 전송 성공: {}", mail.getRecipientEmail());
-            return ResponseEntity.ok(sentResult);                             // 성공적으로 전송된 메일 정보를 반환
+            return ResponseEntity.ok("메일 전송 성공");
         } catch (Exception e) {
-            log.error("메일 전송 실패: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 전송 중 오류 발생: " + e.getMessage());
+            log.error("메일 전송 실패: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메일 전송 중 오류 발생");
         }
     }
 

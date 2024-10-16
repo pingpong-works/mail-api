@@ -18,7 +18,7 @@ public class ReceivedMail {
     @Column(nullable = false)
     private String subject;
 
-    @Column(nullable = false)
+    @Lob
     private String body;
 
     @Column(nullable = false)

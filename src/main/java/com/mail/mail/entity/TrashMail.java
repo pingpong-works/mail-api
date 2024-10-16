@@ -28,7 +28,7 @@ public class TrashMail {
     @Column(nullable = false)
     private String subject;
 
-    @Column(nullable = false)
+    @Lob
     private String body;
 
     private LocalDateTime deletedAt = LocalDateTime.now();

@@ -205,6 +205,15 @@ public class MailService {
 
         return mail;
     }
+    /**
+     * 내게 쓴 메일 조회 메소드
+     * @param employeeEmail 로그인된 사용자의 이메일
+     * @param pageable 페이징 설정 정보
+     * @return 페이징된 내게 쓴 메일 목록
+     */
+    public Page<Mail> getSelfMails(String employeeEmail, Pageable pageable) {
+        return mailRepository.findBySenderEmailAndRecipientEmail(employeeEmail, employeeEmail, pageable);
+    }
 
     /**
      * 휴지통 메일 전체 조회 메소드 (페이징네이션 적용)

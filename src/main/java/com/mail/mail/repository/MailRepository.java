@@ -10,4 +10,8 @@ public interface MailRepository extends JpaRepository<Mail, Long>{
     Page<Mail> findAllByOrderBySentAtDesc(Pageable pageable);
     Page<Mail> findBySubjectContainingOrRecipientNameContainingOrRecipientEmailContaining(
             String subject, String senderName, String senderEmail, Pageable pageable);
+
+    // 내게 쓴 메일 조회
+    Page<Mail> findBySenderEmailAndRecipientEmail(String senderEmail, String recipientEmail, Pageable pageable);
+
 }

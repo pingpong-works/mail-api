@@ -122,6 +122,23 @@ public class MailController {
         return ResponseEntity.ok(new SingleResponseDto<>(receivedMail));
     }
 
+    // 내게 쓴 메일 조회
+    @GetMapping("/self")
+    public ResponseEntity<MultiResponseDto<Mail>> getSelfMails(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam Long employeeId) {
+        // 로그인된 사용자의 이메일 정보 조회
+        UserResponse userResponse = authServiceClient.getEmployeeByIdForUser(employeeId);
+        String employeeEmail = userResponse.getData().getEmail();
+
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Mail> selfMailPage = mailService.getSelfMails(employeeEmail, pageable);
+
+        MultiResponseDto<Mail> response = new MultiResponseDto<>(selfMailPage.getContent(), selfMailPage);
+        return ResponseEntity.ok(response);
+    }
+
 
     /**
      * 메일 삭제 엔드포인트

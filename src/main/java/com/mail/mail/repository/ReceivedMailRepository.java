@@ -11,5 +11,7 @@ import java.util.Optional;
 @Repository
 public interface ReceivedMailRepository extends JpaRepository<ReceivedMail, Long> {
     Page<ReceivedMail> findAllByOrderByReceivedAtDesc(Pageable pageable);
-    Optional<ReceivedMail> findTopByOrderByReceivedAtDesc();
+
+    Page<ReceivedMail> findBySubjectContainingOrSenderNameContainingOrSenderEmailContaining(
+            String subject, String senderName, String senderEmail, Pageable pageable);
 }

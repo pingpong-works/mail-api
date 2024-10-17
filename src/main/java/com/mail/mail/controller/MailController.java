@@ -54,13 +54,23 @@ public class MailController {
         }
     }
 
-    // 보낸 메일 전체 조회
+    // 보낸 메일 전체 조회 및 검색 기능 추가
     @GetMapping("/sent")
     public ResponseEntity<MultiResponseDto<Mail>> getSentMails(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) { // 검색어 파라미터 추가
         Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
-        Page<Mail> mailPage = mailService.getSentMails(pageable);
+        Page<Mail> mailPage;
+
+        if (search != null && !search.isEmpty()) {
+            // 검색어가 있을 경우 검색 수행
+            mailPage = mailService.searchSentMails(search, pageable);
+        } else {
+            // 검색어가 없을 경우 전체 메일 조회
+            mailPage = mailService.getSentMails(pageable);
+        }
+
         MultiResponseDto<Mail> response = new MultiResponseDto<>(mailPage.getContent(), mailPage);
         return ResponseEntity.ok(response);
     }
@@ -84,13 +94,23 @@ public class MailController {
         }
     }
 
-    // 수신 메일 전체 조회
+    // 수신 메일 전체 조회 및 검색 기능 추가
     @GetMapping("/received")
     public ResponseEntity<MultiResponseDto<ReceivedMail>> getReceivedMails(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) { // 검색어 파라미터 추가
         Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
-        Page<ReceivedMail> receivedMailPage = mailService.getReceivedMails(pageable);
+        Page<ReceivedMail> receivedMailPage;
+
+        if (search != null && !search.isEmpty()) {
+            // 검색어가 있을 경우 검색 수행
+            receivedMailPage = mailService.searchReceivedMails(search, pageable);
+        } else {
+            // 검색어가 없을 경우 전체 메일 조회
+            receivedMailPage = mailService.getReceivedMails(pageable);
+        }
+
         MultiResponseDto<ReceivedMail> response = new MultiResponseDto<>(receivedMailPage.getContent(), receivedMailPage);
         return ResponseEntity.ok(response);
     }
@@ -119,13 +139,21 @@ public class MailController {
         }
     }
 
-    // 휴지통 메일 전체 조회
+    // 휴지통 메일 전체 조회 및 검색 기능 추가
     @GetMapping("/trash")
     public ResponseEntity<MultiResponseDto<TrashMail>> getTrashMails(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) { // 검색어 파라미터 추가
         Pageable pageable = PageRequest.of(page - 1, size); // 페이지 번호는 0부터 시작하므로 page-1
-        Page<TrashMail> trashMailPage = mailService.getTrashMails(pageable);
+        Page<TrashMail> trashMailPage;
+
+        if (search != null && !search.isEmpty()) {
+            trashMailPage = mailService.searchTrashMails(search, pageable);
+        } else {
+            trashMailPage = mailService.getTrashMails(pageable);
+        }
+
         MultiResponseDto<TrashMail> response = new MultiResponseDto<>(trashMailPage.getContent(), trashMailPage);
         return ResponseEntity.ok(response);
     }

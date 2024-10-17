@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TrashMailRepository extends JpaRepository<TrashMail, Long> {
     Page<TrashMail> findAllByOrderByDeletedAtDesc(Pageable pageable);
+    Page<TrashMail> findBySubjectContainingOrRecipientNameContainingOrRecipientEmailContaining(
+            String subject, String senderName, String senderEmail, Pageable pageable);
 }

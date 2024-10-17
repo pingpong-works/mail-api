@@ -178,6 +178,17 @@ public class MailService {
     }
 
     /**
+     * 보낸 메일 검색 메소드
+     * @param search 검색어
+     * @param pageable 페이징 설정 정보
+     * @return 검색된 보낸 메일 목록
+     */
+    public Page<Mail> searchSentMails(String search, Pageable pageable) {
+        return mailRepository.findBySubjectContainingOrRecipientNameContainingOrRecipientEmailContaining(
+                search, search, search, pageable);
+    }
+
+    /**
      * 특정 메일 상세 조회 메소드
      * @param mailId 메일 ID
      * @return 메일 상세 정보
@@ -202,6 +213,17 @@ public class MailService {
      */
     public Page<TrashMail> getTrashMails(Pageable pageable) {
         return trashMailRepository.findAllByOrderByDeletedAtDesc(pageable);
+    }
+
+    /**
+     * 휴지통 메일 검색 메소드
+     * @param search 검색어
+     * @param pageable 페이징 설정 정보
+     * @return 검색된 휴지통 메일 목록
+     */
+    public Page<TrashMail> searchTrashMails(String search, Pageable pageable) {
+        return trashMailRepository.findBySubjectContainingOrRecipientNameContainingOrRecipientEmailContaining(
+                search, search, search, pageable);
     }
 
     /**
@@ -294,6 +316,17 @@ public class MailService {
      */
     public Page<ReceivedMail> getReceivedMails(Pageable pageable) {
         return receivedMailRepository.findAllByOrderByReceivedAtDesc(pageable);
+    }
+
+    /**
+     * 검색어를 기준으로 받은 메일을 조회하는 메소드
+     * @param search 검색어
+     * @param pageable 페이징 설정 정보
+     * @return 검색된 메일 목록
+     */
+    public Page<ReceivedMail> searchReceivedMails(String search, Pageable pageable) {
+        return receivedMailRepository.findBySubjectContainingOrSenderNameContainingOrSenderEmailContaining(
+                search, search, search, pageable);
     }
 
     /**

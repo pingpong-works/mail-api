@@ -183,8 +183,16 @@ public class MailService {
      * @return 메일 상세 정보
      */
     public Mail getSentMailById(Long mailId) {
-        return mailRepository.findById(mailId)
+        Mail mail = mailRepository.findById(mailId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 메일을 찾을 수 없습니다. ID: " + mailId));
+
+        if (!mail.getIsRead()) {
+            // 메일 읽음 상태로 변경
+            mail.setIsRead(true);
+            mailRepository.save(mail); // 변경된 상태를 DB에 저장
+        }
+
+        return mail;
     }
 
     /**
@@ -203,19 +211,35 @@ public class MailService {
      */
     public TrashMail getTrashMailById(Long trashMailId) {
         log.info("휴지통 메일 ID: {}", trashMailId);  // 추가된 로깅
-        return trashMailRepository.findById(trashMailId)
+        TrashMail trashMail = trashMailRepository.findById(trashMailId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 휴지통 메일을 찾을 수 없습니다. ID: " + trashMailId));
+
+        if (!trashMail.getIsRead()) {
+            // 메일 읽음 상태로 변경
+            trashMail.setIsRead(true);
+            trashMailRepository.save(trashMail); // 변경된 상태를 DB에 저장
+        }
+
+        return trashMail;
     }
 
 
     /**
-     * 이메일 수신 메소드 (POP3 프로토콜 사용)
-     * @param username 사용자 이메일 계정 이름
-     * @param password 사용자 이메일 계정 비밀번호
+     * 이메일 수신 메소드 (POP3 프로토콜 사용) - 로그인된 사용자의 이메일 정보 사용
+     * @param employeeId 로그인된 사용자의 ID
      * @throws MessagingException 메일 수신 관련 예외
      * @throws IOException 파일 처리 관련 예외
      */
-    public void receiveEmails(String username, String password) throws MessagingException, IOException {
+    public void receiveEmails(Long employeeId) throws MessagingException, IOException {
+        // 로그인된 사용자의 이메일 정보를 auth-api로부터 가져오기
+        UserResponse userResponse = authServiceClient.getEmployeeByIdForUser(employeeId);
+
+        if (userResponse == null || userResponse.getData() == null) {
+            throw new IllegalArgumentException("사용자 정보를 가져올 수 없습니다. ID: " + employeeId);
+        }
+
+        String username = userResponse.getData().getEmail(); // 사용자 이메일
+
         // 메일 속성 설정
         Properties properties = new Properties();
         properties.put("mail.store.protocol", "pop3");
@@ -229,7 +253,7 @@ public class MailService {
 
         // POP3 스토어 객체 생성 후 서버에 연결
         Store store = emailSession.getStore("pop3");
-        store.connect("mail2.pingpong-works.com", username, password);
+        store.connect("mail2.pingpong-works.com", username, "1234qwer");
 
         // 폴더 객체 생성 및 읽기 전용으로 열기
         Folder emailFolder = store.getFolder("INBOX");
@@ -246,12 +270,6 @@ public class MailService {
             if (message.getFrom()[0].toString().contains("mailer-daemon")) {
                 continue; // 반송 메일은 건너뜀
             }
-
-            System.out.println("---------------------------------");
-            System.out.println("이메일 번호 " + (i + 1));
-            System.out.println("제목: " + message.getSubject());
-            System.out.println("보낸 사람: " + message.getFrom()[0]);
-            System.out.println("본문: " + getTextFromMessage(message));
 
             // 받은 이메일을 데이터베이스에 저장
             ReceivedMail receivedMail = new ReceivedMail();
@@ -284,8 +302,16 @@ public class MailService {
      * @return 수신 메일 상세 정보
      */
     public ReceivedMail getReceivedMailById(Long receivedMailId) {
-        return receivedMailRepository.findById(receivedMailId)
+        ReceivedMail receivedMail = receivedMailRepository.findById(receivedMailId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 수신 메일을 찾을 수 없습니다. ID: " + receivedMailId));
+
+        if (!receivedMail.getIsRead()) {
+            // 받은 메일을 읽음 상태로 업데이트
+            receivedMail.setIsRead(true);
+            receivedMailRepository.save(receivedMail); // DB에 변경된 상태 저장
+        }
+
+        return receivedMail;
     }
 
     /**

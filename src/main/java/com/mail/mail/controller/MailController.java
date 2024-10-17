@@ -1,5 +1,7 @@
 package com.mail.mail.controller;
 
+import com.mail.client.auth.AuthServiceClient;
+import com.mail.client.auth.UserResponse;
 import com.mail.dto.MultiResponseDto;
 import com.mail.dto.SingleResponseDto;
 import com.mail.mail.entity.Mail;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class MailController {
 
     private final MailService mailService;
+    private final AuthServiceClient authServiceClient;
 
     /**
      * 메일 전송 API
@@ -72,9 +75,9 @@ public class MailController {
     //pop3서버에서 메일을 가져오는 메서드
     //엔드포인트를 호출하여 수신 메일을 pop3서버에서 가져오고 이를 db에 저장
     @GetMapping("/receive")
-    public ResponseEntity<String> receiveEmails() {
+    public ResponseEntity<String> receiveEmails(@RequestParam Long employeeId) {
         try {
-            mailService.receiveEmails("admin@pingpong-works.com", "1234qwer");
+            mailService.receiveEmails(employeeId);
             return ResponseEntity.ok("이메일을 성공적으로 수신했습니다.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("이메일 수신 중 오류 발생: " + e.getMessage());

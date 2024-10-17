@@ -34,4 +34,7 @@ public class TrashMail {
     private LocalDateTime deletedAt = LocalDateTime.now();
 
     private LocalDateTime sentAt;
+
+    private Boolean isRead = false;
+
 }
